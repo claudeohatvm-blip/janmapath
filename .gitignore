@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.Python
+
+# Django
+*.log
+db.sqlite3
+/media/
+/staticfiles/
+local_settings.py
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node / Tailwind
+node_modules/
+/static/dist/
+
+# Testing / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Ephemeris data files (large, fetched at build time)
+/data/ephemeris/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
