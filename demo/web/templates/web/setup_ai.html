@@ -1,0 +1,211 @@
+{% extends "web/base.html" %}
+{% block title %}AI setup &middot; JanmaPath{% endblock %}
+{% block tagline %}Optional. The reading is complete without it.{% endblock %}
+
+{% block style %}
+  .status{display:grid;gap:11px;grid-template-columns:repeat(2,1fr);margin:18px 0 6px}
+  .srow{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:13px 15px;background:#070b16;border:1px solid var(--line);border-radius:10px}
+  .srow .l{font-size:13px;color:var(--muted)}
+  .banner{padding:16px 18px;border-radius:11px;margin-bottom:22px;font-size:14px}
+  .banner-ok{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.35);color:#9beecb}
+  .banner-no{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.3);color:#bcd2f7}
+  table.tt th{width:34%;vertical-align:top}
+  table.tt td{color:var(--muted)}
+  .cardgap{margin-bottom:18px}
+  @media(max-width:680px){.status{grid-template-columns:1fr}}
+{% endblock %}
+
+{% block body %}
+<div class="nav"><a href="/">New reading</a><a href="/setup/ai">AI setup</a></div>
+
+{% if ai.ready %}
+<div class="banner banner-ok">
+  <strong>AI narration is configured and ready.</strong>
+  Readings can now be written by {{ ai.model }} and produced in any of the
+  {{ languages|length }} supported languages.
+</div>
+{% else %}
+<div class="banner banner-no">
+  <strong>AI narration is not configured &mdash; and nothing is broken.</strong>
+  Every reading is written from rules, and every placement, score and conclusion
+  is identical with or without AI. Follow the steps below only if you want more
+  fluent prose or languages other than English.
+</div>
+{% endif %}
+
+<div class="card cardgap">
+  <h2>Current status</h2>
+  <div class="status">
+    <div class="srow">
+      <span class="l">Anthropic SDK installed</span>
+      {% if ai.sdk_installed %}<span class="pill pill-on">yes &middot; {{ ai.sdk_version }}</span>
+      {% else %}<span class="pill pill-off">not installed</span>{% endif %}
+    </div>
+    <div class="srow">
+      <span class="l">API key detected</span>
+      {% if ai.key_present %}<span class="pill pill-on">{{ ai.key_hint }}</span>
+      {% else %}<span class="pill pill-off">not set</span>{% endif %}
+    </div>
+    <div class="srow">
+      <span class="l">Key format</span>
+      {% if ai.key_present %}
+        {% if ai.key_looks_valid %}<span class="pill pill-on">looks valid</span>
+        {% else %}<span class="pill pill-off">should start sk-ant-</span>{% endif %}
+      {% else %}<span class="pill pill-off">&mdash;</span>{% endif %}
+    </div>
+    <div class="srow">
+      <span class="l">PDF export</span>
+      {% if pdf_available %}<span class="pill pill-on">ready</span>
+      {% else %}<span class="pill pill-off">browser print fallback</span>{% endif %}
+    </div>
+  </div>
+  {% if not pdf_available %}<p class="note">{{ pdf_reason }}</p>{% endif %}
+  <p class="note">This page reads the live environment. Reload it after making changes.</p>
+</div>
+
+<div class="card cardgap">
+  <h2>What the AI does, and does not do</h2>
+  <p class="note" style="font-size:14px;color:#c3cbe0;line-height:1.7">
+    Every number in your reading is computed by the Vedic engine: planetary
+    longitudes from the Swiss Ephemeris, houses, divisional charts, Vimshottari
+    dasha, yogas, doshas and the domain scores. That code imports no network
+    library at all &mdash; it cannot call a model even if asked to.
+  </p>
+  <table class="tt" style="margin-top:14px">
+    <tbody>
+      <tr><th>Computed by the engine</th>
+        <td>Planetary positions, ascendant, houses, D9 and D10, dasha periods,
+            yogas, doshas, strength scores, every band and verdict</td></tr>
+      <tr><th>Written by rules</th>
+        <td>The full report prose, in English &mdash; always, with no API key</td></tr>
+      <tr><th>Optionally rewritten by AI</th>
+        <td>Wording only, for fluency and for other languages</td></tr>
+      <tr><th>Never touched by AI</th>
+        <td>Any placement, score, band or conclusion</td></tr>
+    </tbody>
+  </table>
+  <p class="note">
+    The model receives the findings and the rule-written draft, and is
+    constrained to narrate only what it is given. If it is unreachable the
+    report silently keeps the rule-written text.
+  </p>
+</div>
+
+<div class="card cardgap">
+  <h2>Getting an API key</h2>
+  <ol class="steps">
+    <li>
+      <h4>Create an Anthropic account</h4>
+      <p class="note">
+        Go to <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>
+        and sign up, or sign in if you already have an account. This is the
+        developer console, which is separate from a Claude.ai chat subscription
+        &mdash; a Claude Pro plan does not include API access.
+      </p>
+    </li>
+    <li>
+      <h4>Add credit</h4>
+      <p class="note">
+        Open <strong>Billing</strong> (or <strong>Plans &amp; Billing</strong>) and
+        purchase credit. The API is prepaid; a new account typically needs a
+        minimum first purchase. Without credit, every request fails with a
+        <code>credit_balance_too_low</code> error.
+      </p>
+    </li>
+    <li>
+      <h4>Create the key</h4>
+      <p class="note">
+        Go to <strong>API Keys</strong>, click <strong>Create Key</strong>, and give
+        it a name such as <code>janmapath-demo</code>.
+        <strong>Copy it immediately</strong> &mdash; the full key is shown only once.
+        It begins with <code>sk-ant-</code>.
+      </p>
+    </li>
+    <li>
+      <h4>Set a spend limit</h4>
+      <p class="note">
+        Still in the console, set a monthly spend limit before you start. This is
+        the single most useful safeguard against a runaway loop during development.
+      </p>
+    </li>
+  </ol>
+</div>
+
+<div class="card cardgap">
+  <h2>Configuring this app</h2>
+
+  <h3>1. Install the SDK</h3>
+<pre><code>pip install anthropic</code></pre>
+
+  <h3>2. Provide the key</h3>
+  <p class="note">The app reads <code>ANTHROPIC_API_KEY</code> from the environment. Either export it&hellip;</p>
+<pre><code># macOS / Linux
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Windows PowerShell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."</code></pre>
+  <p class="note">&hellip;or put it in a <code>.env</code> file beside <code>manage.py</code>, which the app loads on start:</p>
+<pre><code>ANTHROPIC_API_KEY=sk-ant-...</code></pre>
+  <p class="note">
+    <strong>Never commit the key.</strong> <code>.env</code> is already listed in
+    <code>.gitignore</code>. A key pushed to a public repository is scraped within
+    minutes; if that happens, revoke it in the console immediately.
+  </p>
+
+  <h3>3. Restart and verify</h3>
+<pre><code>python demo/manage.py runserver</code></pre>
+  <p class="note">
+    Reload this page. The status panel above should show the SDK installed and the
+    key detected. The narration toggle then appears on the reading form.
+  </p>
+</div>
+
+<div class="card cardgap">
+  <h2>What it costs</h2>
+  <p class="note" style="font-size:14px;color:#c3cbe0">
+    The app uses <code>{{ ai.model }}</code>. One reading sends roughly 4,000 input
+    tokens (the findings plus the draft) and receives about 2,500 output tokens
+    &mdash; on current pricing, on the order of <strong>8 US cents per report</strong>.
+  </p>
+  <p class="note">
+    At production scale the daily-horoscope pipeline is the cost that matters, not
+    reports. Narration there is generated per <em>signature group</em> rather than
+    per user and cached, which is what keeps it affordable &mdash; see
+    <code>docs/ARCHITECTURE.md</code>.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Troubleshooting</h2>
+  <table class="tt">
+    <tbody>
+      <tr><th>Page still says &ldquo;not set&rdquo;</th>
+        <td>The variable was exported in a different shell from the one running
+            the server, or the server was not restarted. Environment variables are
+            read once at process start.</td></tr>
+      <tr><th><code>authentication_error</code></th>
+        <td>The key is wrong, revoked, or has stray whitespace or quotes. Create a
+            fresh key and paste it without surrounding quotes in <code>.env</code>.</td></tr>
+      <tr><th><code>credit_balance_too_low</code></th>
+        <td>The account has no credit. Add credit under Billing.</td></tr>
+      <tr><th><code>rate_limit_error</code></th>
+        <td>Too many requests for the account tier. Wait and retry; limits rise
+            automatically with usage history.</td></tr>
+      <tr><th>Report appears but reads like the rules version</th>
+        <td>Narration failed and fell back silently by design &mdash; the report is
+            never blocked on the model. Check the server console for a
+            <code>AI narration unavailable</code> warning with the reason.</td></tr>
+      <tr><th>Using a different provider</th>
+        <td>Replace <code>apps/reports/narrator_ai.py</code>. It has one entry
+            point, <code>narrate(report, findings, language)</code>, and returns the
+            report unchanged on any failure. Nothing else in the codebase talks to
+            a model.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="disclaimer" style="color:var(--dim);font-size:11.5px;text-align:center;margin-top:24px">
+  Readings are offered for guidance and reflection.
+</p>
+{% endblock %}

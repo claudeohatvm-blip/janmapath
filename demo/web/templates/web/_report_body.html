@@ -1,0 +1,157 @@
+{% load report_extras %}
+{% if suppressed %}
+<div class="warn">
+  <strong>Birth time not known.</strong>
+  The ascendant, house placements and divisional charts are withheld &mdash; they
+  cannot be determined without a reliable time, and the marriage, financial and
+  career readings are all read from houses. Moon sign, nakshatra, dasha and the
+  Moon-based dosha rules below are unaffected.
+</div>
+{% endif %}
+
+<div class="tiles">
+  <div class="tile">
+    <div class="k">Lagna</div>
+    <div class="v">{% if chart.ascendant %}{{ chart.ascendant.sign }}{% else %}&mdash;{% endif %}</div>
+    <div class="s">{% if chart.ascendant %}Lord {{ chart.ascendant.lord }}{% else %}Time unknown{% endif %}</div>
+  </div>
+  {% for p in chart.planets %}{% if p.body == "Moon" %}
+  <div class="tile">
+    <div class="k">Moon sign</div>
+    <div class="v">{{ p.sign }}</div>
+    <div class="s">{{ p.nakshatra }} &middot; pada {{ p.pada }}</div>
+  </div>
+  {% endif %}{% endfor %}
+  <div class="tile">
+    <div class="k">Current dasha</div>
+    <div class="v">{{ current_dasha.mahadasha }}</div>
+    <div class="s">Antardasha {{ current_dasha.antardasha }}</div>
+  </div>
+  <div class="tile">
+    <div class="k">Doshas active</div>
+    <div class="v">{{ dosha_count }}</div>
+    <div class="s">of 3 scanned</div>
+  </div>
+</div>
+
+{% if grid %}
+<div class="charts">
+  <div class="chartbox">
+    <h3 class="charttitle">Rashi &middot; D1</h3>
+    <div class="rashi">
+      {% for c in grid %}
+      <div class="sq {% if c.is_ascendant %}asc{% endif %}" style="grid-row:{{ c.row }};grid-column:{{ c.col }}">
+        <div class="hs"><span class="hn">H{{ c.house }}</span><span class="sn">{{ c.sign }}</span></div>
+        <div class="oc">{{ c.occupants|join:" " }}</div>
+      </div>
+      {% endfor %}
+      <div class="centre">
+        <div class="t">Lagna</div><div class="b">{{ chart.ascendant.sign }}</div>
+      </div>
+    </div>
+  </div>
+  {% if navamsa_grid %}
+  <div class="chartbox">
+    <h3 class="charttitle">Navamsa &middot; D9</h3>
+    <div class="rashi">
+      {% for c in navamsa_grid %}
+      <div class="sq {% if c.is_ascendant %}asc{% endif %}" style="grid-row:{{ c.row }};grid-column:{{ c.col }}">
+        <div class="hs"><span class="hn">H{{ c.house }}</span><span class="sn">{{ c.sign }}</span></div>
+        <div class="oc">{{ c.occupants|join:" " }}</div>
+      </div>
+      {% endfor %}
+      <div class="centre">
+        <div class="t">D9 Lagna</div><div class="b">{{ chart.vargas.D9.ascendant_sign }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+<p class="note legend">
+  Su Sun &middot; Mo Moon &middot; Ma Mars &middot; Me Mercury &middot; Ju Jupiter &middot;
+  Ve Venus &middot; Sa Saturn &middot; Ra Rahu &middot; Ke Ketu.
+  &#7487; marks retrograde. The highlighted square is the ascendant.
+</p>
+{% endif %}
+
+{% for section in sections %}
+<section class="report-section">
+  <div class="sechead">
+    <h2>{{ section.title }}</h2>
+    {% if section.score is not None %}
+    <span class="scorepill {{ section.band|band_class }}">{{ section.band }} &middot; {{ section.score }}/100</span>
+    {% endif %}
+  </div>
+  <p class="summary">{{ section.summary }}</p>
+
+  {% for p in section.paragraphs %}{{ p|prose }}{% endfor %}
+
+  {% if section.key_points %}
+  <div class="keypoints">
+    <h4>At a glance</h4>
+    <ul>{% for k in section.key_points %}<li>{{ k }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if section.evidence %}
+  <details class="evidence">
+    <summary>The placements behind this reading</summary>
+    <table>
+      <tbody>
+      {% for e in section.evidence %}
+        <tr><th>{{ e.label }}</th><td>{{ e.value }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+</section>
+{% endfor %}
+
+<section class="report-section">
+  <h2>Graha positions</h2>
+  <table class="grahas">
+    <thead>
+      <tr><th>Graha</th><th>Rashi</th><th>Deg</th><th>Nakshatra</th><th>Pd</th>
+      {% if not suppressed %}<th>Ho</th>{% endif %}<th>Strength</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in chart.planets %}
+      <tr>
+        <td><strong>{{ p.body }}</strong></td>
+        <td>{{ p.sign }}</td>
+        <td class="mono">{{ p.degree_in_sign|floatformat:2 }}</td>
+        <td>{{ p.nakshatra }}</td>
+        <td>{{ p.pada }}</td>
+        {% if not suppressed %}<td>{{ p.house }}</td>{% endif %}
+        <td class="mono">{% for body, st in chart.strengths.items %}{% if body == p.body %}{{ st.score }} <span class="muted">{{ st.band }}</span>{% endif %}{% endfor %}</td>
+        <td>
+          {% if p.dignity == "exalted" %}<span class="tag tag-ex">exalted</span>
+          {% elif p.dignity == "debilitated" %}<span class="tag tag-de">debilitated</span>
+          {% elif p.dignity == "own" %}<span class="tag tag-own">own</span>{% endif %}
+          {% if p.retrograde %}<span class="tag tag-r">R</span>{% endif %}
+          {% for body, st in chart.strengths.items %}{% if body == p.body and st.factors.combust %}<span class="tag tag-de">combust</span>{% endif %}{% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="report-section">
+  <h2>Vimshottari dasha</h2>
+  <table>
+    <thead><tr><th>Mahadasha</th><th>From</th><th>To</th><th>Years</th></tr></thead>
+    <tbody>
+      {% for d in chart.dashas.vimshottari.periods|slice:":7" %}
+      <tr {% if d.lord == current_dasha.mahadasha %}class="current"{% endif %}>
+        <td><strong>{{ d.lord }}</strong>{% if d.lord == current_dasha.mahadasha %}
+          <span class="tag tag-own" style="margin-left:6px">current</span>{% endif %}</td>
+        <td class="mono">{{ d.start }}</td>
+        <td class="mono">{{ d.end }}</td>
+        <td class="mono">{{ d.years|floatformat:1 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>

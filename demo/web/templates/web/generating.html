@@ -1,5 +1,5 @@
 {% extends "web/base.html" %}
-{% block title %}Creating your Kundli &middot; JanmaPath{% endblock %}
+{% block title %}Creating your reading &middot; JanmaPath{% endblock %}
 {% block tagline %}Reading the sky as it stood at the moment you were born{% endblock %}
 
 {% block style %}
@@ -37,7 +37,7 @@
 
 {% block body %}
 <div class="card">
-  <h2>Creating your Kundli</h2>
+  <h2>Creating your reading</h2>
   <ul class="stages" id="stages"></ul>
   <div class="bar"><span id="bar"></span></div>
   <div class="count" id="count">Starting&hellip;</div>
@@ -49,14 +49,9 @@
 
 {% block script %}
 <script>
-const STAGES = [
-  "Resolving your birth moment",
-  "Computing planetary longitudes",
-  "Casting your Rashi and Navamsa charts",
-  "Running your Vimshottari dasha",
-  "Scanning for doshas",
-  "Assembling your chart",
-];
+// Stage labels come from the engine itself, so the screen can never drift
+// out of step with the work actually being done.
+const STAGES = {{ stage_json|safe }};
 
 const list = document.getElementById('stages');
 STAGES.forEach((label, i) => {
@@ -84,7 +79,7 @@ source.onmessage = (e) => {
 
   if (msg.type === 'done') {
     source.close();
-    setTimeout(() => { window.location = "/chart/" + msg.job_id; }, 450);
+    setTimeout(() => { window.location = "/report/" + msg.job_id; }, 450);
   }
 
   if (msg.type === 'error') {

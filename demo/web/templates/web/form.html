@@ -1,0 +1,107 @@
+{% extends "web/base.html" %}
+{% block body %}
+<div class="nav">
+  <a href="/">New reading</a>
+  <a href="/setup/ai">AI setup {% if ai.ready %}&#9679;{% endif %}</a>
+</div>
+
+<div class="card">
+  <h2>Your birth details</h2>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <form method="post" action="/generate">
+    <div class="grid">
+      <div>
+        <label for="name">Full name</label>
+        <input id="name" name="name" required placeholder="As it should appear on the report">
+      </div>
+      <div>
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender">
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="other">Other</option>
+        </select>
+        <p class="note">Sets the marriage karaka &mdash; Venus signifies the wife, Jupiter the husband.</p>
+      </div>
+      <div>
+        <label for="birth_date">Date of birth</label>
+        <input id="birth_date" name="birth_date" type="date" required max="{{ today }}">
+      </div>
+      <div>
+        <label for="birth_time">Time of birth</label>
+        <input id="birth_time" name="birth_time" type="time" step="60">
+      </div>
+      <div class="full">
+        <label>How sure are you of the time?</label>
+        <div class="radios">
+          <label><input type="radio" name="time_accuracy" value="exact" checked> I know it exactly</label>
+          <label><input type="radio" name="time_accuracy" value="approximate"> Approximately</label>
+          <label><input type="radio" name="time_accuracy" value="unknown"> I don&rsquo;t know it</label>
+        </div>
+        <p class="note">
+          Without a reliable time the ascendant cannot be determined, and marriage,
+          financial and career readings are all read from houses. Those sections are
+          withheld rather than guessed. Moon sign, nakshatra, dasha and the
+          Moon-based dosha rules are unaffected.
+        </p>
+      </div>
+      <div class="full">
+        <label for="place">Place of birth</label>
+        <select id="place" name="place" required>
+          <option value="">Select a place&hellip;</option>
+          {% for p in places %}<option value="{{ p.name }}">{{ p.name }}</option>{% endfor %}
+        </select>
+        <p class="note">
+          Fixes latitude, longitude and timezone. The engine applies the UTC offset
+          actually in force on your birth date &mdash; India observed daylight saving
+          from 1942 to 1945 and used different offsets before 1955.
+        </p>
+      </div>
+
+      <div class="full">
+        <label>Narration</label>
+        {% if ai.ready %}
+        <label class="switch">
+          <input type="checkbox" name="use_ai" checked>
+          <span>Use AI to write the reading &mdash; more fluent, and available in other languages</span>
+        </label>
+        <div style="margin-top:12px">
+          <label for="language">Language</label>
+          <select id="language" name="language">
+            {% for code, label in languages.items %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <p class="note">
+          The AI only rewrites wording. Every placement, score and conclusion is
+          computed by the engine and is identical either way.
+        </p>
+        {% else %}
+        <label class="switch" style="opacity:.55;cursor:not-allowed">
+          <input type="checkbox" disabled>
+          <span>AI narration is not configured &mdash; the report will be written from rules</span>
+        </label>
+        <p class="note">
+          The reading works fully without AI. To enable more fluent prose and other
+          languages, see <a href="/setup/ai">AI setup</a>.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+    <button type="submit">Create my reading</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  const timeField = document.getElementById('birth_time');
+  document.querySelectorAll('input[name=time_accuracy]').forEach(radio => {
+    radio.addEventListener('change', e => {
+      const unknown = e.target.value === 'unknown';
+      timeField.disabled = unknown;
+      timeField.required = !unknown;
+      if (unknown) timeField.value = '';
+    });
+  });
+</script>
+{% endblock %}

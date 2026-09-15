@@ -10,7 +10,7 @@ from datetime import date, time
 
 import pytest
 
-from apps.astro.charts import navamsa_sign_index
+from apps.astro.varga import dashamsha_sign, navamsa_sign as navamsa_sign_index
 from apps.astro.engine import compute_chart, input_checksum
 from apps.astro.ephemeris import resolve_utc
 from apps.astro.types import BirthData, TimeAccuracy
@@ -77,7 +77,9 @@ class TestUnknownBirthTime:
         )
         assert chart["ascendant"] is None
         assert chart["houses"] == []
-        assert chart["navamsa"] is None
+        assert chart["vargas"]["D9"] is None
+        assert chart["vargas"]["D10"] is None
+        assert chart["readings"] == {}
         assert "ascendant" in chart["analysis"]["suppressed"]
         assert all(p["house"] is None for p in chart["planets"])
 

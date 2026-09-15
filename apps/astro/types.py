@@ -41,6 +41,7 @@ class BirthData:
     time_accuracy: TimeAccuracy = TimeAccuracy.EXACT
     name: str = ""
     gender: str = ""
+    place_name: str = ""
 
     def __post_init__(self) -> None:
         if not -90.0 <= self.latitude <= 90.0:
@@ -95,7 +96,10 @@ class Stage(str, Enum):
 
     RESOLVING_TIME = "Resolving your birth moment"
     PLANETARY = "Computing planetary longitudes"
-    CHARTS = "Casting your Rashi and Navamsa charts"
+    CHARTS = "Casting Rashi, Navamsa and Dashamsha"
+    STRENGTH = "Weighing the strength of each graha"
     DASHA = "Running your Vimshottari dasha"
+    YOGAS = "Searching for yogas in your chart"
     DOSHA = "Scanning for doshas"
-    ASSEMBLING = "Assembling your chart"
+    ANALYSIS = "Reading life, marriage, wealth and career"
+    ASSEMBLING = "Assembling your report"

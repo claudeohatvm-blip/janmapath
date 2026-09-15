@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ chart.input.name }} - Life Report - JanmaPath</title>
+<style>
+  @page{
+    size:A4; margin:18mm 16mm 20mm;
+    @bottom-center{content:"JanmaPath  ·  page " counter(page) " of " counter(pages);
+      font-family:Georgia,serif;font-size:8pt;color:#8a8a8a}
+  }
+  *{box-sizing:border-box}
+  body{font:10.5pt/1.62 Georgia,"Times New Roman",serif;color:#1a1a22;margin:0}
+  h1{font-size:22pt;margin:0 0 3mm;letter-spacing:.06em}
+  .sub{color:#666;font-size:10pt;margin:0 0 2mm}
+  .rule{height:2px;background:linear-gradient(90deg,#2b4ea8,#c0304a);margin:4mm 0 7mm}
+  h2{font-size:13pt;margin:0;color:#1b2f66;letter-spacing:.01em}
+  h3{font-size:9pt;letter-spacing:.14em;text-transform:uppercase;color:#777;margin:7mm 0 2mm}
+  h4{font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:#777;margin:0 0 2mm}
+  .report-section{page-break-inside:avoid;margin-bottom:7mm;padding-bottom:5mm;border-bottom:1px solid #e2e2e8}
+  .sechead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2mm}
+  .scorepill{font-size:8pt;text-transform:uppercase;letter-spacing:.08em;padding:1mm 2.5mm;border-radius:2mm}
+  .band-good{background:#e4f6ec;color:#1d6b40}
+  .band-mixed{background:#fdf2dc;color:#8a6212}
+  .band-hard{background:#fde9ec;color:#9c2436}
+  .summary{font-size:11.5pt;color:#333;margin:0 0 3mm;font-style:italic}
+  .para{margin:0 0 3mm;text-align:justify}
+  .remedy{margin:0 0 2mm 6mm;padding-left:3mm;border-left:2px solid #2b4ea8;color:#444;font-size:9.5pt}
+  .keypoints{background:#f6f7fb;border:1px solid #e2e2e8;border-radius:2mm;padding:3mm 4mm;margin-top:3mm}
+  .keypoints ul{margin:0;padding-left:5mm}
+  .keypoints li{font-size:9.5pt;padding:.4mm 0}
+  .evidence{margin-top:3mm}
+  .evidence summary{display:none}
+  .evidence table{width:100%;border-collapse:collapse;font-size:9pt}
+  .evidence th{text-align:left;width:38%;color:#666;font-weight:normal;padding:1mm 2mm;
+    border-bottom:1px solid #eee;text-transform:none;letter-spacing:0}
+  .evidence td{padding:1mm 2mm;border-bottom:1px solid #eee}
+  .tiles{display:flex;gap:3mm;margin-bottom:6mm}
+  .tile{flex:1;border:1px solid #dcdce4;border-radius:2mm;padding:3mm}
+  .tile .k{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:1mm}
+  .tile .v{font-size:13pt;font-weight:bold;color:#1b2f66}
+  .tile .s{font-size:8pt;color:#777}
+  .charts{display:flex;gap:5mm;margin-bottom:3mm;page-break-inside:avoid}
+  .chartbox{flex:1}
+  .charttitle{font-size:8pt;letter-spacing:.14em;text-transform:uppercase;color:#777;margin:0 0 2mm}
+  .rashi{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,22mm);
+    gap:.5mm;background:#ccc;border:1px solid #ccc}
+  .sq{background:#fff;padding:1.5mm}
+  .sq.asc{background:#eef3ff;outline:1.2px solid #2b4ea8;outline-offset:-1.2px}
+  .sq .hs{display:flex;justify-content:space-between;font-size:6.5pt;color:#999}
+  .sq .oc{font-size:8.5pt;font-weight:bold;color:#1b2f66;margin-top:.8mm;line-height:1.35}
+  .centre{grid-column:2/4;grid-row:2/4;background:#fff;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center}
+  .centre .t{font-size:6.5pt;letter-spacing:.14em;text-transform:uppercase;color:#999}
+  .centre .b{font-size:11pt;font-weight:bold;color:#555}
+  table{width:100%;border-collapse:collapse;font-size:9pt}
+  th{text-align:left;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#777;
+    padding:1.5mm 2mm;border-bottom:1.2px solid #ccc}
+  td{padding:1.5mm 2mm;border-bottom:1px solid #eee}
+  tr.current{background:#eef3ff}
+  .tag{font-size:7pt;padding:.3mm 1.5mm;border-radius:1mm;background:#eee;color:#555}
+  .tag-ex{background:#e4f6ec;color:#1d6b40}
+  .tag-de{background:#fde9ec;color:#9c2436}
+  .tag-own{background:#eef3ff;color:#1b2f66}
+  .tag-r{background:#fdf2dc;color:#8a6212}
+  .warn{background:#fdf8ec;border:1px solid #e8d5a8;border-radius:2mm;padding:3mm 4mm;
+    margin-bottom:5mm;font-size:9.5pt;color:#6b5418}
+  .note,.legend{font-size:8pt;color:#888;margin:2mm 0 5mm}
+  .muted{color:#999;font-size:7.5pt}
+  .mono{font-family:"DejaVu Sans Mono",monospace;font-size:8.5pt}
+  .disclaimer{margin-top:7mm;padding-top:4mm;border-top:1px solid #ddd;
+    font-size:8pt;color:#888;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+  <h1>{{ chart.input.name }}</h1>
+  <p class="sub">
+    Vedic life report &middot; {{ chart.input.birth_date }}{% if chart.input.birth_time %} at {{ chart.input.birth_time }}{% endif %}
+    {% if chart.input.place %}&middot; {{ chart.input.place }}{% endif %}
+  </p>
+  <p class="sub">Prepared {{ report.generated_on }}</p>
+  <div class="rule"></div>
+
+  {% include "web/_report_body.html" %}
+
+  <p class="disclaimer">
+    {{ report.disclaimer }}<br>
+    Engine v{{ chart.engine.version }} &middot; {{ chart.engine.ayanamsa }} ayanamsa
+    {{ chart.engine.ayanamsa_value|floatformat:4 }}&deg; &middot; whole sign houses &middot;
+    narration: {{ report.narrator }}<br>
+    Chart checksum {{ chart.engine.input_checksum|slice:":16" }}
+  </p>
+</body>
+</html>
