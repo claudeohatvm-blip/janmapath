@@ -1,0 +1,99 @@
+{% extends "web/base.html" %}
+{% block title %}Creating your Kundli &middot; JanmaPath{% endblock %}
+{% block tagline %}Reading the sky as it stood at the moment you were born{% endblock %}
+
+{% block style %}
+  .stages{list-style:none;margin:0;padding:0}
+  .stages li{
+    display:flex;align-items:center;gap:14px;padding:14px 4px;
+    border-bottom:1px solid rgba(28,39,64,.55);color:var(--dim);
+    transition:color .35s ease;
+  }
+  .stages li:last-child{border-bottom:0}
+  .stages li.active{color:var(--ink)}
+  .stages li.done{color:var(--muted)}
+  .dot{
+    width:19px;height:19px;border-radius:50%;flex:none;position:relative;
+    border:1.5px solid var(--line);transition:all .35s ease;
+  }
+  li.active .dot{
+    border-color:var(--blue);box-shadow:0 0 0 5px rgba(59,130,246,.13);
+    animation:pulse 1.15s ease-in-out infinite;
+  }
+  li.done .dot{border-color:var(--ok);background:var(--ok)}
+  li.done .dot::after{
+    content:"";position:absolute;left:5.4px;top:2.6px;width:4px;height:8px;
+    border:solid #05060a;border-width:0 1.8px 1.8px 0;transform:rotate(45deg);
+  }
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 5px rgba(59,130,246,.13)}50%{box-shadow:0 0 0 9px rgba(59,130,246,.04)}}
+  .bar{height:2px;background:var(--line);border-radius:2px;overflow:hidden;margin:26px 0 6px}
+  .bar span{
+    display:block;height:100%;width:0;border-radius:2px;
+    background:linear-gradient(90deg,var(--blue),var(--red));
+    transition:width .5s cubic-bezier(.4,0,.2,1);
+  }
+  .count{font-size:12px;color:var(--dim);letter-spacing:.09em;text-align:right}
+{% endblock %}
+
+{% block body %}
+<div class="card">
+  <h2>Creating your Kundli</h2>
+  <ul class="stages" id="stages"></ul>
+  <div class="bar"><span id="bar"></span></div>
+  <div class="count" id="count">Starting&hellip;</div>
+  <p class="note" id="note" style="margin-top:20px">
+    Each step below reports work that has genuinely completed &mdash; this is not a timer.
+  </p>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+const STAGES = [
+  "Resolving your birth moment",
+  "Computing planetary longitudes",
+  "Casting your Rashi and Navamsa charts",
+  "Running your Vimshottari dasha",
+  "Scanning for doshas",
+  "Assembling your chart",
+];
+
+const list = document.getElementById('stages');
+STAGES.forEach((label, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = '<span class="dot"></span><span>' + label + '</span>';
+  if (i === 0) li.classList.add('active');
+  list.appendChild(li);
+});
+
+const items = [...list.children];
+const source = new EventSource("/stream/{{ job_id }}");
+
+source.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+
+  if (msg.type === 'stage') {
+    for (let i = 0; i < msg.index; i++) {
+      items[i].classList.remove('active');
+      items[i].classList.add('done');
+    }
+    if (msg.index < items.length) items[msg.index].classList.add('active');
+    document.getElementById('bar').style.width = (msg.index / msg.total * 100) + '%';
+    document.getElementById('count').textContent = msg.index + ' of ' + msg.total;
+  }
+
+  if (msg.type === 'done') {
+    source.close();
+    setTimeout(() => { window.location = "/chart/" + msg.job_id; }, 450);
+  }
+
+  if (msg.type === 'error') {
+    source.close();
+    document.getElementById('note').innerHTML =
+      '<span style="color:#ff9bad">' + msg.message + '</span>';
+  }
+};
+
+source.onerror = () => source.close();
+</script>
+{% endblock %}

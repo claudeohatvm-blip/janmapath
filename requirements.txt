@@ -1,0 +1,6 @@
+# Prototype dependencies. Production adds DRF, psycopg, celery, redis.
+Django==5.2.17
+pyswisseph==2.10.3.2
+
+# Development
+pytest==8.4.2
