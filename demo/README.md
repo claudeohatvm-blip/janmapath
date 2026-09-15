@@ -17,6 +17,51 @@ python -m venv .venv
 
 Open <http://127.0.0.1:8000>.
 
+## Showing it on another device
+
+`runserver` binds to `127.0.0.1`, which only the host machine can reach. To open
+the demo on a phone or another laptop on the same Wi-Fi:
+
+```bash
+.venv/bin/python demo/manage.py serve
+```
+
+This binds to every interface and prints the address to type on the other
+device. Equivalent to `runserver 0.0.0.0:8000` with the address worked out for
+you. Add `--port 9000` to use a different port.
+
+### Finding the address yourself
+
+| OS | Command |
+|---|---|
+| Linux | `hostname -I` |
+| macOS | `ipconfig getifaddr en0` (Wi-Fi) |
+| Windows | `ipconfig` - look for IPv4 Address |
+
+Then open `http://<that-address>:8000` on the other device. It usually looks
+like `192.168.x.x` or `10.x.x.x`.
+
+### If it does not load
+
+Almost always the host firewall. Both devices must also be on the **same**
+network - phones on mobile data, or a "guest" Wi-Fi that isolates clients, will
+not reach it.
+
+| OS | Allow the port |
+|---|---|
+| Windows | PowerShell as Administrator: `New-NetFirewallRule -DisplayName "JanmaPath" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow` |
+| macOS | A dialog asks whether to allow incoming connections to Python - click Allow. Otherwise System Settings -> Network -> Firewall -> Options |
+| Linux (ufw) | `sudo ufw allow 8000/tcp` |
+| Linux (firewalld) | `sudo firewall-cmd --add-port=8000/tcp` |
+
+### Before you do this
+
+This is Django's development server with `DEBUG = True` and
+`ALLOWED_HOSTS = ["*"]`. Anyone who can reach the port can read a full traceback
+with source code if something errors. That is fine on a home or office network
+you trust, and it is not suitable for the public internet - do not port-forward
+it or expose it through a tunnel.
+
 ## Routes
 
 | Route | Purpose |
