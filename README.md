@@ -18,26 +18,27 @@ and build plan. No application code has been written yet.
 
 | Document | What it covers |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture, stack, module layout, subsystem designs |
-| [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Postgres schema and MongoDB collections in detail |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System topology, the four services, schema requirements, auth, async pipelines, security |
+| [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Full schema detail *(pending update to the single-Postgres stack)* |
 | [`docs/USER_FLOWS.md`](docs/USER_FLOWS.md) | Canonical product flows — registration through fulfilment |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Phased build plan with scope and exit criteria |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture decision records — what we chose and why |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture decision records *(ADR-002 and ADR-003 superseded — pending update)* |
 
 ## Stack at a glance
 
 | Layer | Choice |
 |---|---|
-| Frontend | Django templates + HTMX + Alpine.js + Tailwind CSS |
-| Backend | Django 5.2 LTS (modular monolith) |
-| Transactional store | PostgreSQL 16 — identity, money, orders, fulfilment |
-| Document store | MongoDB — charts, reports, horoscope content |
-| Cache / queues | Redis |
+| Client UI | `janmapath.com` — React + Vite SPA, marketing routes pre-rendered |
+| Staff UI | `manage.janmapath.com` — React + Vite SPA, separate build |
+| API | `api.janmapath.com` — Django REST Framework, JWT + RBAC |
+| Styling | Tailwind CSS, Framer Motion |
+| Database | PostgreSQL 16 — relational core + `JSONField` for chart payloads |
+| Cache / broker | Redis — OTP TTL, rate limits, Celery |
 | Async work | Celery + Celery Beat |
-| Astrology engine | Pure Python module, zero framework coupling |
+| Astrology engine | Pure Python module (`apps/astro`), run inside Celery workers |
 | Payments | Razorpay |
-| Messaging | WhatsApp Cloud API, DLT-registered SMS |
-| Region | `ap-south-1` (Mumbai) |
+| Messaging | MSG91 — WhatsApp + DLT-registered SMS |
+| Deployment | Docker Compose behind Nginx, `asia-south1` (Mumbai) |
 
 ## Product surface
 
