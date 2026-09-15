@@ -90,6 +90,16 @@ this:
 
 Narration failing never costs a report - it falls back to rule-written prose.
 
+### Transient failures are retried
+
+`503 UNAVAILABLE`, `429`, `5xx` and dropped connections are retried three times
+with exponential backoff and jitter. Configuration errors - `400`, `401`, `403`,
+`404` - are **not** retried: they would fail identically forever, and retrying
+only makes the person watching the progress screen wait.
+
+Backoff is deliberately short (a few seconds at most) because a report is being
+generated interactively, not in a batch job.
+
 ---
 
 ## Option 2 - Anthropic Claude
@@ -150,7 +160,8 @@ key detected.
 | Panel still says "not set" | Variable exported in a different shell from the one running the server, or the server was not restarted. |
 | Gemini `401 UNAUTHENTICATED` | Key wrong, revoked, or has stray quotes or whitespace. Create a fresh one in AI Studio. |
 | Gemini `404 ... no longer available to new users` | Google retired that model ID. The server log names the replacement; set `GEMINI_MODEL=` in `.env` and restart. **Check models** on `/setup/ai` lists every ID this key can reach. |
-| Gemini `429 RESOURCE_EXHAUSTED` | Free-tier rate limit. Wait, or change `GEMINI_MODEL`. |
+| Gemini `503 UNAVAILABLE` (high demand) | Google's servers were busy - not a configuration problem. Retried automatically; generate again, or try a different `GEMINI_MODEL` since load is per-model. |
+| Gemini `429 RESOURCE_EXHAUSTED` | Free-tier rate limit. Retried automatically; if it persists, wait or change `GEMINI_MODEL`. |
 | Gemini empty response | Usually a safety block or an exhausted output budget; the server log names the finish reason. |
 | Claude `authentication_error` | Key wrong or revoked. |
 | Claude `credit_balance_too_low` | No credit on the account. |

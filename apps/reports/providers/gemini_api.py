@@ -17,6 +17,7 @@ from .base import (
     install_command,
     python_executable,
     user_prompt,
+    with_retry,
 )
 
 NAME = "gemini"
@@ -123,8 +124,8 @@ def narrate(payload: dict, language: str) -> dict:
     from google.genai import types
 
     client = genai.Client(api_key=api_key())
-    try:
-        response = client.models.generate_content(
+    def call():
+        return client.models.generate_content(
             model=model(),
             contents=user_prompt(json.dumps(payload, ensure_ascii=False), language),
             config=types.GenerateContentConfig(
@@ -139,6 +140,9 @@ def narrate(payload: dict, language: str) -> dict:
                 ),
             ),
         )
+
+    try:
+        response = with_retry(call, label="gemini narration")
     except Exception as exc:                        # noqa: BLE001 - re-raised below
         message = str(exc)
         if _RETIRED_HINT in message:

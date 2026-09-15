@@ -12,6 +12,7 @@ from .base import (
     install_command,
     python_executable,
     user_prompt,
+    with_retry,
 )
 
 NAME = "anthropic"
@@ -62,23 +63,29 @@ def narrate(payload: dict, language: str) -> dict:
     import anthropic
 
     client = anthropic.Anthropic()
-    with client.messages.stream(
-        model=model(),
-        max_tokens=16000,
-        system=SYSTEM_PROMPT,
-        thinking={"type": "adaptive"},
-        output_config={
-            "effort": "medium",
-            "format": {"type": "json_schema", "schema": RESPONSE_SCHEMA},
-        },
-        messages=[
-            {
-                "role": "user",
-                "content": user_prompt(json.dumps(payload, ensure_ascii=False), language),
-            }
-        ],
-    ) as stream:
-        response = stream.get_final_message()
+
+    def call():
+        with client.messages.stream(
+            model=model(),
+            max_tokens=16000,
+            system=SYSTEM_PROMPT,
+            thinking={"type": "adaptive"},
+            output_config={
+                "effort": "medium",
+                "format": {"type": "json_schema", "schema": RESPONSE_SCHEMA},
+            },
+            messages=[
+                {
+                    "role": "user",
+                    "content": user_prompt(
+                        json.dumps(payload, ensure_ascii=False), language
+                    ),
+                }
+            ],
+        ) as stream:
+            return stream.get_final_message()
+
+    response = with_retry(call, label="claude narration")
 
     if response.stop_reason == "refusal":
         raise RuntimeError("request declined by safety classifier")

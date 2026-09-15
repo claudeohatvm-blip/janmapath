@@ -282,9 +282,15 @@ GEMINI_MODEL=gemini-2.5-pro</code></pre>
             with <code>GEMINI_MODEL=</code> in <code>.env</code> and restart.
             Use <strong>Check models</strong> above to see every ID this key can
             reach.</td></tr>
+      <tr><th>Gemini: <code>503 UNAVAILABLE</code> &mdash; high demand</th>
+        <td>Google&rsquo;s servers were busy. Not a configuration problem. The app
+            already retries transient failures three times with backoff; if all
+            three land during a spike it falls back to rule-written text. Simply
+            generate again, or try a different <code>GEMINI_MODEL</code> &mdash;
+            load is per-model.</td></tr>
       <tr><th>Gemini: <code>429 RESOURCE_EXHAUSTED</code></th>
-        <td>Free-tier rate limit. Wait a minute, or switch model with
-            <code>GEMINI_MODEL</code>.</td></tr>
+        <td>Free-tier rate limit. Retried automatically; if it persists, wait a
+            minute or switch model with <code>GEMINI_MODEL</code>.</td></tr>
       <tr><th>Gemini: empty response</th>
         <td>Usually a safety block or an exhausted output budget. The server log
             names the finish reason.</td></tr>
