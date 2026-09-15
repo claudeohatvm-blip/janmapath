@@ -17,6 +17,10 @@
   table.tt th{width:34%;vertical-align:top}
   table.tt td{color:var(--muted)}
   .cardgap{margin-bottom:18px}
+  .modelgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .modelid{font-size:11.5px;padding:4px 9px;background:#070b16;border:1px solid var(--line);
+    border-radius:6px;color:var(--muted)}
+  .modelid.current{border-color:var(--blue);color:var(--blue-glow);background:rgba(59,130,246,.1)}
   .fixbox{margin-top:11px;padding:11px 12px;border-radius:9px;
     background:rgba(245,196,81,.06);border:1px solid rgba(245,196,81,.3)}
   .fixlabel{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
@@ -94,6 +98,36 @@
     to disable AI narration entirely.
     {% if ai.pinned %}Currently pinned to <code>{{ ai.pinned }}</code>.{% endif %}
   </p>
+  {% if ai.ready %}
+  <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:15px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:13px;color:var(--muted)">
+        Model IDs are retired over time. Check which ones this key can reach.
+      </span>
+      <a href="?models=1" class="pill pill-off" style="text-decoration:none">Check models</a>
+    </div>
+
+    {% if models_checked %}
+      {% if models %}
+      <p class="note" style="margin:12px 0 7px">
+        {{ models|length }} model{{ models|pluralize }} available to this key.
+        Set one with <code>GEMINI_MODEL=</code> in <code>.env</code>.
+        Currently using <code>{{ ai.model }}</code>.
+      </p>
+      <div class="modelgrid">
+        {% for m in models %}
+        <code class="modelid {% if m.id == ai.model %}current{% endif %}">{{ m.id }}</code>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="note" style="margin:12px 0 0;color:#ff9bad">
+        Could not list models &mdash; usually an invalid key or no network.
+      </p>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="prow" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
     <span style="font-size:13px;color:var(--muted)">PDF export</span>
     {% if pdf_available %}<span class="pill pill-on">ready</span>
@@ -243,6 +277,11 @@ GEMINI_MODEL=gemini-2.5-pro</code></pre>
       <tr><th>Gemini: <code>401 UNAUTHENTICATED</code></th>
         <td>Key is wrong, revoked, or has stray quotes or whitespace. Create a
             fresh one in AI Studio.</td></tr>
+      <tr><th>Gemini: <code>404 &hellip; no longer available to new users</code></th>
+        <td>Google retired that model ID. The log names the replacement; set it
+            with <code>GEMINI_MODEL=</code> in <code>.env</code> and restart.
+            Use <strong>Check models</strong> above to see every ID this key can
+            reach.</td></tr>
       <tr><th>Gemini: <code>429 RESOURCE_EXHAUSTED</code></th>
         <td>Free-tier rate limit. Wait a minute, or switch model with
             <code>GEMINI_MODEL</code>.</td></tr>

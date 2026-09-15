@@ -201,15 +201,32 @@ def chart_json(request: HttpRequest, job_id: str) -> JsonResponse:
 
 
 def setup_ai(request: HttpRequest) -> HttpResponse:
-    """How to obtain and configure an API key, with a live status check."""
+    """How to obtain and configure an API key, with a live status check.
+
+    Passing ?models=1 additionally queries the provider for the model IDs this
+    key can actually reach. That costs a network round trip, so it is opt-in
+    rather than run on every page load.
+    """
+    ai = narrator_ai.status()
+    models: list[dict] = []
+    checked = request.GET.get("models") == "1"
+
+    if checked:
+        provider = narrator_ai.active_provider()
+        lister = getattr(provider, "list_models", None) if provider else None
+        if lister is not None:
+            models = lister()
+
     return render(
         request,
         "web/setup_ai.html",
         {
-            "ai": narrator_ai.status(),
+            "ai": ai,
             "languages": narrator_ai.LANGUAGES,
             "pdf_available": pdf.is_available(),
             "pdf_reason": pdf.unavailable_reason(),
+            "models": models,
+            "models_checked": checked,
         },
     )
 

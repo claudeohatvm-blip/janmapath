@@ -68,7 +68,7 @@ Then put the key in `.env` beside `manage.py`:
 
 ```
 GEMINI_API_KEY=AQ....
-GEMINI_MODEL=gemini-2.5-pro      # optional, default gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash    # optional, default gemini-3.6-flash
 ```
 
 `.env` is preferable to exporting: it survives closing the terminal, and it
@@ -76,6 +76,19 @@ avoids shell-syntax differences (`export VAR=` in bash, `$env:VAR =` in
 PowerShell, `set VAR=` in CMD).
 
 `GOOGLE_API_KEY` is accepted as an alternative variable name.
+
+### Model IDs go stale
+
+Google retires model IDs, and a hardcoded default in a distributed app will
+eventually 404 with *"no longer available to new users"*. Two things handle
+this:
+
+- The error names the replacement, and the app re-raises it as
+  `set GEMINI_MODEL=<that one>` rather than a wall of JSON.
+- `/setup/ai` has a **Check models** button that queries the API for every ID
+  this key can actually reach, so the fix is visible rather than guesswork.
+
+Narration failing never costs a report - it falls back to rule-written prose.
 
 ---
 
@@ -136,6 +149,7 @@ key detected.
 | SDK shows "not installed" but pip said "already satisfied" | pip installed into a different Python. A virtualenv ignores `~/.local/lib`, so a user-site install is invisible to it. Use the command shown in the provider card on `/setup/ai`, which names the running interpreter explicitly. |
 | Panel still says "not set" | Variable exported in a different shell from the one running the server, or the server was not restarted. |
 | Gemini `401 UNAUTHENTICATED` | Key wrong, revoked, or has stray quotes or whitespace. Create a fresh one in AI Studio. |
+| Gemini `404 ... no longer available to new users` | Google retired that model ID. The server log names the replacement; set `GEMINI_MODEL=` in `.env` and restart. **Check models** on `/setup/ai` lists every ID this key can reach. |
 | Gemini `429 RESOURCE_EXHAUSTED` | Free-tier rate limit. Wait, or change `GEMINI_MODEL`. |
 | Gemini empty response | Usually a safety block or an exhausted output budget; the server log names the finish reason. |
 | Claude `authentication_error` | Key wrong or revoked. |

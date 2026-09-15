@@ -20,7 +20,11 @@ from .base import (
 )
 
 NAME = "gemini"
-DEFAULT_MODEL = "gemini-2.5-flash"
+# Google retires model IDs, and a hardcoded default in a distributed app goes
+# stale silently - the request 404s with "no longer available to new users".
+# list_models() on the setup page is the durable fix: it shows what this key can
+# actually reach today, so a stale default is visible rather than mysterious.
+DEFAULT_MODEL = "gemini-3.6-flash"
 KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
 
 
@@ -72,27 +76,81 @@ def status() -> dict:
     }
 
 
+def _suggested_model(message: str) -> str | None:
+    """Pull the replacement model Google names in a retirement 404."""
+    import re
+
+    match = re.search(r"use\s+models/([A-Za-z0-9._-]+)", message)
+    return match.group(1) if match else None
+
+
+def list_models() -> list[dict]:
+    """Models this key can actually use for generateContent.
+
+    Returns [] on any failure - this is a diagnostic aid, never a hard
+    dependency.
+    """
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=api_key())
+        found = []
+        for m in client.models.list():
+            actions = m.supported_actions or []
+            if actions and "generateContent" not in actions:
+                continue
+            name = (m.name or "").removeprefix("models/")
+            if not name:
+                continue
+            found.append(
+                {
+                    "id": name,
+                    "label": m.display_name or name,
+                    "output_limit": m.output_token_limit,
+                }
+            )
+        return sorted(found, key=lambda x: x["id"], reverse=True)
+    except Exception:                               # noqa: BLE001 - diagnostic only
+        return []
+
+
+_RETIRED_HINT = "no longer available"
+
+
 def narrate(payload: dict, language: str) -> dict:
     """Returns the parsed JSON payload. Raises on any failure."""
     from google import genai
     from google.genai import types
 
     client = genai.Client(api_key=api_key())
-    response = client.models.generate_content(
-        model=model(),
-        contents=user_prompt(json.dumps(payload, ensure_ascii=False), language),
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            response_mime_type="application/json",
-            response_json_schema=RESPONSE_SCHEMA,
-            max_output_tokens=16000,
-            # No tools are declared, so the SDK's automatic function calling
-            # has nothing to do but does emit a warning on every call.
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(
-                disable=True
+    try:
+        response = client.models.generate_content(
+            model=model(),
+            contents=user_prompt(json.dumps(payload, ensure_ascii=False), language),
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json",
+                response_json_schema=RESPONSE_SCHEMA,
+                max_output_tokens=16000,
+                # No tools are declared, so the SDK's automatic function calling
+                # has nothing to do but does emit a warning on every call.
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                    disable=True
+                ),
             ),
-        ),
-    )
+        )
+    except Exception as exc:                        # noqa: BLE001 - re-raised below
+        message = str(exc)
+        if _RETIRED_HINT in message:
+            # Google names the replacement in the 404 body; surface it rather
+            # than leaving the operator to read a wall of JSON.
+            suggested = _suggested_model(message)
+            raise RuntimeError(
+                f"model {model()!r} has been retired"
+                + (f"; set GEMINI_MODEL={suggested}" if suggested else "")
+                + ". Open /setup/ai to see the models this key can use."
+            ) from exc
+        raise
 
     text = response.text
     if not text:
