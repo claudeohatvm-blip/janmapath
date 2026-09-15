@@ -12,9 +12,10 @@ pyswisseph>=2.10,<3.0
 # optional in practice.
 weasyprint>=62,<71
 
-# Optional - AI narration. The reading is complete without this; see the
-# "AI setup" page in the running app, or docs/AI_SETUP.md
-# anthropic>=0.40
+# Optional - AI narration. The reading is complete without either of these;
+# see the "AI setup" page in the running app, or docs/AI_SETUP.md
+# google-genai>=1.0          # Google Gemini, via AI Studio
+# anthropic>=0.40            # Anthropic Claude
 
 # Development
 pytest>=8.0

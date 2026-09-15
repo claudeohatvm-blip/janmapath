@@ -84,8 +84,12 @@ classical rule evaluation.
 
 The report prose is written from rules and works with **no API key**. AI is an
 optional rewrite for fluency and for languages other than English, and it may
-not change a placement, score, band or conclusion. See `/setup/ai` in the running
-app, or [`../docs/AI_SETUP.md`](../docs/AI_SETUP.md).
+not change a placement, score, band or conclusion.
+
+Two providers are supported - **Google Gemini** (AI Studio, free tier, no card)
+and **Anthropic Claude**. Set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY` and
+restart; `AI_PROVIDER` pins the choice. See `/setup/ai` in the running app, or
+[`../docs/AI_SETUP.md`](../docs/AI_SETUP.md).
 
 ## What the report contains
 

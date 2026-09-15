@@ -3,17 +3,23 @@
 {% block tagline %}Optional. The reading is complete without it.{% endblock %}
 
 {% block style %}
-  .status{display:grid;gap:11px;grid-template-columns:repeat(2,1fr);margin:18px 0 6px}
-  .srow{display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:13px 15px;background:#070b16;border:1px solid var(--line);border-radius:10px}
-  .srow .l{font-size:13px;color:var(--muted)}
   .banner{padding:16px 18px;border-radius:11px;margin-bottom:22px;font-size:14px}
   .banner-ok{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.35);color:#9beecb}
   .banner-no{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.3);color:#bcd2f7}
+  .prov{display:grid;gap:13px;grid-template-columns:repeat(2,1fr);margin:16px 0 4px}
+  .pcard{background:#070b16;border:1px solid var(--line);border-radius:11px;padding:16px 17px}
+  .pcard.live{border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.05)}
+  .pcard h4{margin:0 0 3px;font-size:14.5px;font-weight:600}
+  .pcard .sub{font-size:11.5px;color:var(--dim);margin-bottom:12px}
+  .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:6px 0;border-top:1px solid rgba(28,39,64,.55);font-size:12.5px;color:var(--muted)}
+  .prow:first-of-type{border-top:0}
   table.tt th{width:34%;vertical-align:top}
   table.tt td{color:var(--muted)}
   .cardgap{margin-bottom:18px}
-  @media(max-width:680px){.status{grid-template-columns:1fr}}
+  .tag-active{background:rgba(52,211,153,.16);color:#6ee7b7;font-size:10px;
+    padding:2px 8px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase}
+  @media(max-width:680px){.prov{grid-template-columns:1fr}}
 {% endblock %}
 
 {% block body %}
@@ -21,8 +27,8 @@
 
 {% if ai.ready %}
 <div class="banner banner-ok">
-  <strong>AI narration is configured and ready.</strong>
-  Readings can now be written by {{ ai.model }} and produced in any of the
+  <strong>AI narration is ready &mdash; using {{ ai.provider_label }}</strong>
+  ({{ ai.model }}). Readings can be produced in any of the
   {{ languages|length }} supported languages.
 </div>
 {% else %}
@@ -35,30 +41,40 @@
 {% endif %}
 
 <div class="card cardgap">
-  <h2>Current status</h2>
-  <div class="status">
-    <div class="srow">
-      <span class="l">Anthropic SDK installed</span>
-      {% if ai.sdk_installed %}<span class="pill pill-on">yes &middot; {{ ai.sdk_version }}</span>
-      {% else %}<span class="pill pill-off">not installed</span>{% endif %}
+  <h2>Providers</h2>
+  <div class="prov">
+    {% for p in ai.providers %}
+    <div class="pcard {% if p.name == ai.provider %}live{% endif %}">
+      <h4>{{ p.label }}
+        {% if p.name == ai.provider %}<span class="tag-active">in use</span>{% endif %}
+      </h4>
+      <div class="sub">{{ p.model }}</div>
+      <div class="prow"><span>SDK <code>{{ p.sdk_package }}</code></span>
+        {% if p.sdk_installed %}<span class="pill pill-on">{{ p.sdk_version }}</span>
+        {% else %}<span class="pill pill-off">not installed</span>{% endif %}</div>
+      <div class="prow"><span>API key</span>
+        {% if p.key_present %}<span class="pill pill-on">{{ p.key_hint }}</span>
+        {% else %}<span class="pill pill-off">not set</span>{% endif %}</div>
+      <div class="prow"><span>Key format</span>
+        {% if p.key_present %}
+          {% if p.key_looks_valid %}<span class="pill pill-on">valid</span>
+          {% else %}<span class="pill pill-off">unexpected prefix</span>{% endif %}
+        {% else %}<span class="pill pill-off">&mdash;</span>{% endif %}</div>
+      <div class="prow"><span>Environment variable</span>
+        <code>{{ p.key_vars.0 }}</code></div>
     </div>
-    <div class="srow">
-      <span class="l">API key detected</span>
-      {% if ai.key_present %}<span class="pill pill-on">{{ ai.key_hint }}</span>
-      {% else %}<span class="pill pill-off">not set</span>{% endif %}
-    </div>
-    <div class="srow">
-      <span class="l">Key format</span>
-      {% if ai.key_present %}
-        {% if ai.key_looks_valid %}<span class="pill pill-on">looks valid</span>
-        {% else %}<span class="pill pill-off">should start sk-ant-</span>{% endif %}
-      {% else %}<span class="pill pill-off">&mdash;</span>{% endif %}
-    </div>
-    <div class="srow">
-      <span class="l">PDF export</span>
-      {% if pdf_available %}<span class="pill pill-on">ready</span>
-      {% else %}<span class="pill pill-off">browser print fallback</span>{% endif %}
-    </div>
+    {% endfor %}
+  </div>
+  <p class="note">
+    When both are configured, Gemini is used. Pin a choice with
+    <code>AI_PROVIDER=gemini</code>, <code>anthropic</code>, or <code>none</code>
+    to disable AI narration entirely.
+    {% if ai.pinned %}Currently pinned to <code>{{ ai.pinned }}</code>.{% endif %}
+  </p>
+  <div class="prow" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+    <span style="font-size:13px;color:var(--muted)">PDF export</span>
+    {% if pdf_available %}<span class="pill pill-on">ready</span>
+    {% else %}<span class="pill pill-off">browser print fallback</span>{% endif %}
   </div>
   {% if not pdf_available %}<p class="note">{{ pdf_reason }}</p>{% endif %}
   <p class="note">This page reads the live environment. Reload it after making changes.</p>
@@ -86,93 +102,101 @@
     </tbody>
   </table>
   <p class="note">
-    The model receives the findings and the rule-written draft, and is
-    constrained to narrate only what it is given. If it is unreachable the
-    report silently keeps the rule-written text.
+    If the model is unreachable the report silently keeps the rule-written text.
+    Generation is never blocked on it.
   </p>
 </div>
 
 <div class="card cardgap">
-  <h2>Getting an API key</h2>
+  <h2>Google Gemini &mdash; via AI Studio</h2>
+  <p class="note">Free tier, and no payment card required to start. The quickest option for testing.</p>
   <ol class="steps">
     <li>
-      <h4>Create an Anthropic account</h4>
+      <h4>Open AI Studio</h4>
       <p class="note">
-        Go to <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>
-        and sign up, or sign in if you already have an account. This is the
-        developer console, which is separate from a Claude.ai chat subscription
-        &mdash; a Claude Pro plan does not include API access.
-      </p>
-    </li>
-    <li>
-      <h4>Add credit</h4>
-      <p class="note">
-        Open <strong>Billing</strong> (or <strong>Plans &amp; Billing</strong>) and
-        purchase credit. The API is prepaid; a new account typically needs a
-        minimum first purchase. Without credit, every request fails with a
-        <code>credit_balance_too_low</code> error.
+        Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>
+        and sign in with a Google account.
       </p>
     </li>
     <li>
       <h4>Create the key</h4>
       <p class="note">
-        Go to <strong>API Keys</strong>, click <strong>Create Key</strong>, and give
-        it a name such as <code>janmapath-demo</code>.
-        <strong>Copy it immediately</strong> &mdash; the full key is shown only once.
-        It begins with <code>sk-ant-</code>.
+        Click <strong>Create API key</strong>. Copy it immediately.
+      </p>
+      <p class="note">
+        Keys come in two formats and <strong>both are valid</strong>:
+        <code>AQ....</code> is the current format, <code>AIza...</code> the legacy
+        one. If another tool rejects an <code>AQ.</code> key, that tool has a
+        hardcoded <code>AIza</code> check &mdash; not a problem with your key.
+        This app accepts both.
       </p>
     </li>
     <li>
-      <h4>Set a spend limit</h4>
-      <p class="note">
-        Still in the console, set a monthly spend limit before you start. This is
-        the single most useful safeguard against a runaway loop during development.
-      </p>
+      <h4>Install the SDK</h4>
+<pre><code>pip install google-genai</code></pre>
+    </li>
+    <li>
+      <h4>Set the key</h4>
+<pre><code># macOS / Linux
+export GEMINI_API_KEY="AQ...."
+
+# Windows PowerShell
+$env:GEMINI_API_KEY = "AQ...."</code></pre>
+      <p class="note">Or add it to <code>.env</code> beside <code>manage.py</code>:</p>
+<pre><code>GEMINI_API_KEY=AQ....
+# optional, default is gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-pro</code></pre>
     </li>
   </ol>
 </div>
 
 <div class="card cardgap">
-  <h2>Configuring this app</h2>
-
-  <h3>1. Install the SDK</h3>
-<pre><code>pip install anthropic</code></pre>
-
-  <h3>2. Provide the key</h3>
-  <p class="note">The app reads <code>ANTHROPIC_API_KEY</code> from the environment. Either export it&hellip;</p>
-<pre><code># macOS / Linux
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# Windows PowerShell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."</code></pre>
-  <p class="note">&hellip;or put it in a <code>.env</code> file beside <code>manage.py</code>, which the app loads on start:</p>
-<pre><code>ANTHROPIC_API_KEY=sk-ant-...</code></pre>
-  <p class="note">
-    <strong>Never commit the key.</strong> <code>.env</code> is already listed in
-    <code>.gitignore</code>. A key pushed to a public repository is scraped within
-    minutes; if that happens, revoke it in the console immediately.
-  </p>
-
-  <h3>3. Restart and verify</h3>
-<pre><code>python demo/manage.py runserver</code></pre>
-  <p class="note">
-    Reload this page. The status panel above should show the SDK installed and the
-    key detected. The narration toggle then appears on the reading form.
-  </p>
+  <h2>Anthropic Claude</h2>
+  <p class="note">Prepaid credit required. A Claude.ai chat subscription does <strong>not</strong> include API access.</p>
+  <ol class="steps">
+    <li>
+      <h4>Create an account</h4>
+      <p class="note">
+        <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>
+        &mdash; the developer console, separate from Claude.ai.
+      </p>
+    </li>
+    <li>
+      <h4>Add credit and a spend limit</h4>
+      <p class="note">
+        Under <strong>Billing</strong>. Without credit, requests fail with
+        <code>credit_balance_too_low</code>. Set a monthly spend limit while you
+        are there &mdash; the best safeguard against a runaway loop.
+      </p>
+    </li>
+    <li>
+      <h4>Create the key</h4>
+      <p class="note">
+        <strong>API Keys</strong> &rarr; <strong>Create Key</strong>. Shown only
+        once; it begins <code>sk-ant-</code>.
+      </p>
+    </li>
+    <li>
+      <h4>Install and configure</h4>
+<pre><code>pip install anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
+    </li>
+  </ol>
 </div>
 
 <div class="card cardgap">
-  <h2>What it costs</h2>
-  <p class="note" style="font-size:14px;color:#c3cbe0">
-    The app uses <code>{{ ai.model }}</code>. One reading sends roughly 4,000 input
-    tokens (the findings plus the draft) and receives about 2,500 output tokens
-    &mdash; on current pricing, on the order of <strong>8 US cents per report</strong>.
+  <h2>Then restart</h2>
+<pre><code>python demo/manage.py serve</code></pre>
+  <p class="note">
+    Environment variables are read once at process start, so a running server
+    will not pick up a new key. Reload this page afterwards &mdash; the provider
+    panel above should show the key detected.
   </p>
   <p class="note">
-    At production scale the daily-horoscope pipeline is the cost that matters, not
-    reports. Narration there is generated per <em>signature group</em> rather than
-    per user and cached, which is what keeps it affordable &mdash; see
-    <code>docs/ARCHITECTURE.md</code>.
+    <strong>Never commit a key.</strong> <code>.env</code> is already in
+    <code>.gitignore</code>. A key pasted into a chat, an issue, or a public
+    repository should be treated as compromised and rotated immediately &mdash;
+    scrapers find them within minutes.
   </p>
 </div>
 
@@ -180,27 +204,30 @@ $env:ANTHROPIC_API_KEY = "sk-ant-..."</code></pre>
   <h2>Troubleshooting</h2>
   <table class="tt">
     <tbody>
-      <tr><th>Page still says &ldquo;not set&rdquo;</th>
+      <tr><th>Panel still says &ldquo;not set&rdquo;</th>
         <td>The variable was exported in a different shell from the one running
-            the server, or the server was not restarted. Environment variables are
-            read once at process start.</td></tr>
-      <tr><th><code>authentication_error</code></th>
-        <td>The key is wrong, revoked, or has stray whitespace or quotes. Create a
-            fresh key and paste it without surrounding quotes in <code>.env</code>.</td></tr>
-      <tr><th><code>credit_balance_too_low</code></th>
-        <td>The account has no credit. Add credit under Billing.</td></tr>
-      <tr><th><code>rate_limit_error</code></th>
-        <td>Too many requests for the account tier. Wait and retry; limits rise
-            automatically with usage history.</td></tr>
-      <tr><th>Report appears but reads like the rules version</th>
-        <td>Narration failed and fell back silently by design &mdash; the report is
-            never blocked on the model. Check the server console for a
-            <code>AI narration unavailable</code> warning with the reason.</td></tr>
-      <tr><th>Using a different provider</th>
-        <td>Replace <code>apps/reports/narrator_ai.py</code>. It has one entry
-            point, <code>narrate(report, findings, language)</code>, and returns the
-            report unchanged on any failure. Nothing else in the codebase talks to
-            a model.</td></tr>
+            the server, or the server was not restarted.</td></tr>
+      <tr><th>Gemini: <code>401 UNAUTHENTICATED</code></th>
+        <td>Key is wrong, revoked, or has stray quotes or whitespace. Create a
+            fresh one in AI Studio.</td></tr>
+      <tr><th>Gemini: <code>429 RESOURCE_EXHAUSTED</code></th>
+        <td>Free-tier rate limit. Wait a minute, or switch model with
+            <code>GEMINI_MODEL</code>.</td></tr>
+      <tr><th>Gemini: empty response</th>
+        <td>Usually a safety block or an exhausted output budget. The server log
+            names the finish reason.</td></tr>
+      <tr><th>Claude: <code>authentication_error</code></th>
+        <td>Key wrong or revoked. Create a fresh one.</td></tr>
+      <tr><th>Claude: <code>credit_balance_too_low</code></th>
+        <td>No credit on the account.</td></tr>
+      <tr><th>Report reads like the rules version</th>
+        <td>Narration failed and fell back by design. The server console carries
+            an <code>AI narration unavailable</code> warning naming the reason.</td></tr>
+      <tr><th>Adding another provider</th>
+        <td>Drop a module into <code>apps/reports/providers/</code> with
+            <code>status()</code> and <code>narrate(payload, language)</code>, and
+            register it in <code>narrator_ai.PROVIDERS</code>. Nothing else in the
+            codebase talks to a model.</td></tr>
     </tbody>
   </table>
 </div>

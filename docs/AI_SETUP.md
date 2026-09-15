@@ -4,8 +4,9 @@
 rules. Follow this only if you want more fluent prose or languages other than
 English.
 
-The running app has a live version of this page at `/setup/ai`, which checks
-your actual environment and tells you what is and is not detected.
+Two providers are supported: **Google Gemini** (via AI Studio) and **Anthropic
+Claude**. The running app has a live version of this page at `/setup/ai`, which
+checks your actual environment and shows which provider is in use.
 
 ---
 
@@ -36,77 +37,85 @@ byte-for-byte precisely because no model sits in that path.
 
 ---
 
-## Getting a key
+## Option 1 - Google Gemini (AI Studio)
 
-1. **Create an account** at <https://console.anthropic.com>.
-   This is the developer console, separate from a Claude.ai chat subscription -
-   a Claude Pro plan does **not** include API access.
+Free tier, no payment card required. The quickest way to start.
 
-2. **Add credit** under *Billing*. The API is prepaid; a new account needs a
-   minimum first purchase. Without credit every request fails with
-   `credit_balance_too_low`.
+### Get a key
 
-3. **Create the key** under *API Keys* → *Create Key*. Name it something like
-   `janmapath-demo`. **Copy it immediately** - the full key is shown only once.
-   It begins with `sk-ant-`.
+1. Go to <https://aistudio.google.com/apikey> and sign in with a Google account.
+2. Click **Create API key**. Copy it immediately.
 
-4. **Set a monthly spend limit** in the console. The single most useful
-   safeguard against a runaway loop during development.
+> **Both key formats are valid.** AI Studio issues `AQ....` (current) and
+> `AIza...` (legacy). If another tool rejects an `AQ.` key, that tool has a
+> hardcoded `AIza` check - it is not a problem with your key. This app accepts
+> both, and the SDK sends either on the `x-goog-api-key` header the native
+> Gemini endpoint expects.
+
+### Configure
+
+```bash
+pip install google-genai
+export GEMINI_API_KEY="AQ...."          # or AIza...
+```
+
+Or in `.env` beside `manage.py`:
+
+```
+GEMINI_API_KEY=AQ....
+GEMINI_MODEL=gemini-2.5-pro      # optional, default gemini-2.5-flash
+```
+
+`GOOGLE_API_KEY` is accepted as an alternative variable name.
 
 ---
 
-## Configuring the app
+## Option 2 - Anthropic Claude
 
-### 1. Install the SDK
+Prepaid credit required. A Claude.ai chat subscription does **not** include API
+access.
+
+1. Create an account at <https://console.anthropic.com> - the developer console,
+   separate from Claude.ai.
+2. Add credit under **Billing**, and set a monthly spend limit while you are
+   there. Without credit, requests fail with `credit_balance_too_low`.
+3. **API Keys** → **Create Key**. Shown only once; begins `sk-ant-`.
 
 ```bash
 pip install anthropic
-```
-
-### 2. Provide the key
-
-Either export it:
-
-```bash
-# macOS / Linux
 export ANTHROPIC_API_KEY="sk-ant-..."
-
-# Windows PowerShell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
 ```
 
-Or put it in a `.env` file beside `manage.py` (copy `.env.example`):
-
-```
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-`manage.py` loads `.env` on start. Exported variables always win over the file.
-
-> **Never commit the key.** `.env` is in `.gitignore`. A key pushed to a public
-> repository is scraped within minutes - revoke it in the console immediately if
-> that happens.
-
-### 3. Restart and verify
-
-```bash
-python demo/manage.py runserver
-```
-
-Open `/setup/ai`. The status panel should show the SDK installed and the key
-detected, and the narration toggle then appears on the reading form.
+Optional: `ANTHROPIC_MODEL` (default `claude-opus-5`).
 
 ---
 
-## Cost
+## Choosing a provider
 
-The app uses `claude-opus-5`. One reading sends roughly 4,000 input tokens (the
-findings plus the draft) and receives about 2,500 output tokens - on the order
-of **8 US cents per report**.
+When both are configured, **Gemini is used**. Pin a choice explicitly:
 
-At production scale the daily-horoscope pipeline dominates cost, not reports.
-Narration there is generated per *signature group* rather than per user and then
-cached, which is what makes it affordable. See [`ARCHITECTURE.md`](ARCHITECTURE.md) §8.
+```
+AI_PROVIDER=gemini       # or: anthropic, none, auto (default)
+```
+
+`none` disables AI narration even when a key is present - useful for comparing
+the rule-written output against the AI version.
+
+---
+
+## Then restart
+
+```bash
+python demo/manage.py serve
+```
+
+Environment variables are read once at process start, so a running server will
+not pick up a new key. Reload `/setup/ai` - the provider panel should show the
+key detected.
+
+> **Never commit a key.** `.env` is in `.gitignore`. A key pasted into a chat,
+> an issue, or a public repository should be treated as compromised and rotated
+> immediately - scrapers find them within minutes.
 
 ---
 
@@ -114,14 +123,24 @@ cached, which is what makes it affordable. See [`ARCHITECTURE.md`](ARCHITECTURE.
 
 | Symptom | Cause |
 |---|---|
-| Page still says "not set" | The variable was exported in a different shell from the one running the server, or the server was not restarted. Environment variables are read once at process start. |
-| `authentication_error` | Key is wrong, revoked, or has stray whitespace or quotes. Create a fresh key; paste it without surrounding quotes. |
-| `credit_balance_too_low` | No credit on the account. Add credit under Billing. |
-| `rate_limit_error` | Too many requests for the account tier. Wait and retry; limits rise with usage history. |
-| Report reads like the rules version | Narration failed and fell back by design. Check the server console for an `AI narration unavailable` warning with the reason. |
+| Panel still says "not set" | Variable exported in a different shell from the one running the server, or the server was not restarted. |
+| Gemini `401 UNAUTHENTICATED` | Key wrong, revoked, or has stray quotes or whitespace. Create a fresh one in AI Studio. |
+| Gemini `429 RESOURCE_EXHAUSTED` | Free-tier rate limit. Wait, or change `GEMINI_MODEL`. |
+| Gemini empty response | Usually a safety block or an exhausted output budget; the server log names the finish reason. |
+| Claude `authentication_error` | Key wrong or revoked. |
+| Claude `credit_balance_too_low` | No credit on the account. |
+| Report reads like the rules version | Narration failed and fell back by design. The server console carries an `AI narration unavailable` warning naming the reason. |
 
-## Using a different provider
+## Adding another provider
 
-Replace `apps/reports/narrator_ai.py`. It has one entry point -
-`narrate(report, findings, language)` - and returns the report unchanged on any
-failure. Nothing else in the codebase talks to a model.
+Drop a module into `apps/reports/providers/` exposing:
+
+```python
+NAME = "myprovider"
+def model() -> str: ...
+def status() -> dict: ...                       # see providers/gemini_api.py
+def narrate(payload: dict, language: str) -> dict:   # raises on failure
+```
+
+Register it in `narrator_ai.PROVIDERS`. Nothing else in the codebase talks to a
+model.
