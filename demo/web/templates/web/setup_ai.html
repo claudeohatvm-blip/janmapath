@@ -17,6 +17,11 @@
   table.tt th{width:34%;vertical-align:top}
   table.tt td{color:var(--muted)}
   .cardgap{margin-bottom:18px}
+  .fixbox{margin-top:11px;padding:11px 12px;border-radius:9px;
+    background:rgba(245,196,81,.06);border:1px solid rgba(245,196,81,.3)}
+  .fixlabel{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--gold);margin-bottom:7px}
+  .fixbox pre{margin:0;font-size:11.5px;padding:9px 11px;white-space:pre-wrap;word-break:break-all}
   .tag-active{background:rgba(52,211,153,.16);color:#6ee7b7;font-size:10px;
     padding:2px 8px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase}
   @media(max-width:680px){.prov{grid-template-columns:1fr}}
@@ -42,6 +47,10 @@
 
 <div class="card cardgap">
   <h2>Providers</h2>
+  <p class="note" style="margin:0 0 4px">
+    Running on <code>{{ ai.providers.0.python_executable }}</code>{% if ai.providers.0.in_virtualenv %} (virtualenv){% endif %}.
+    SDKs must be installed into <em>this</em> interpreter.
+  </p>
   <div class="prov">
     {% for p in ai.providers %}
     <div class="pcard {% if p.name == ai.provider %}live{% endif %}">
@@ -52,6 +61,20 @@
       <div class="prow"><span>SDK <code>{{ p.sdk_package }}</code></span>
         {% if p.sdk_installed %}<span class="pill pill-on">{{ p.sdk_version }}</span>
         {% else %}<span class="pill pill-off">not installed</span>{% endif %}</div>
+      {% if not p.sdk_installed %}
+      <div class="fixbox">
+        <div class="fixlabel">Install it into the interpreter running this server</div>
+        <pre><code>{{ p.install_command }}</code></pre>
+        {% if p.in_virtualenv %}
+        <p class="note" style="margin:6px 0 0">
+          A bare <code>pip install</code> almost certainly targets a different
+          Python. This server runs inside a virtualenv, and a virtualenv ignores
+          <code>~/.local/lib</code> &mdash; so a package installed by the system
+          pip stays invisible to it, even though pip reports success.
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
       <div class="prow"><span>API key</span>
         {% if p.key_present %}<span class="pill pill-on">{{ p.key_hint }}</span>
         {% else %}<span class="pill pill-off">not set</span>{% endif %}</div>
@@ -133,7 +156,12 @@
     </li>
     <li>
       <h4>Install the SDK</h4>
-<pre><code>pip install google-genai</code></pre>
+<pre><code>{% for p in ai.providers %}{% if p.name == "gemini" %}{{ p.install_command }}{% endif %}{% endfor %}</code></pre>
+      <p class="note">
+        Naming the interpreter explicitly rather than using a bare
+        <code>pip install</code>, which resolves through PATH and usually finds
+        a different Python than the one running this server.
+      </p>
     </li>
     <li>
       <h4>Set the key</h4>
@@ -178,8 +206,8 @@ GEMINI_MODEL=gemini-2.5-pro</code></pre>
     </li>
     <li>
       <h4>Install and configure</h4>
-<pre><code>pip install anthropic
-export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
+<pre><code>{% for p in ai.providers %}{% if p.name == "anthropic" %}{{ p.install_command }}{% endif %}{% endfor %}</code></pre>
+      <p class="note">Then set <code>ANTHROPIC_API_KEY</code> in <code>.env</code>.</p>
     </li>
   </ol>
 </div>
@@ -204,6 +232,11 @@ export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
   <h2>Troubleshooting</h2>
   <table class="tt">
     <tbody>
+      <tr><th>SDK says &ldquo;not installed&rdquo; but pip said it was already there</th>
+        <td>pip installed it into a different Python. A virtualenv ignores
+            <code>~/.local/lib</code>, so a user-site install is invisible to it.
+            Use the command shown in the provider card above, which names this
+            server's interpreter explicitly.</td></tr>
       <tr><th>Panel still says &ldquo;not set&rdquo;</th>
         <td>The variable was exported in a different shell from the one running
             the server, or the server was not restarted.</td></tr>

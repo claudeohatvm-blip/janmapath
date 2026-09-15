@@ -8,6 +8,29 @@ the rule-written text".
 
 from __future__ import annotations
 
+import shlex
+import sys
+
+
+def python_executable() -> str:
+    """The interpreter actually running this server."""
+    return sys.executable
+
+
+def in_virtualenv() -> bool:
+    return sys.prefix != sys.base_prefix
+
+
+def install_command(package: str) -> str:
+    """A pip command guaranteed to target the running interpreter.
+
+    A bare `pip install` resolves through PATH, which on most machines is the
+    system Python rather than the project's virtualenv - and a virtualenv
+    ignores ~/.local/lib by default, so a user-site install stays invisible to
+    it. Running pip as a module of a named interpreter removes the ambiguity.
+    """
+    return f"{shlex.quote(sys.executable)} -m pip install {package}"
+
 LANGUAGES: dict[str, str] = {
     "en": "English",
     "hi": "Hindi",

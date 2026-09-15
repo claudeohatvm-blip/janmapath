@@ -10,7 +10,14 @@ from __future__ import annotations
 import json
 import os
 
-from .base import RESPONSE_SCHEMA, SYSTEM_PROMPT, user_prompt
+from .base import (
+    RESPONSE_SCHEMA,
+    SYSTEM_PROMPT,
+    in_virtualenv,
+    install_command,
+    python_executable,
+    user_prompt,
+)
 
 NAME = "gemini"
 DEFAULT_MODEL = "gemini-2.5-flash"
@@ -50,6 +57,9 @@ def status() -> dict:
         "name": NAME,
         "label": "Google Gemini (AI Studio)",
         "sdk_package": "google-genai",
+        "install_command": install_command("google-genai"),
+        "python_executable": python_executable(),
+        "in_virtualenv": in_virtualenv(),
         "sdk_installed": version is not None,
         "sdk_version": version,
         "key_vars": KEY_VARS,

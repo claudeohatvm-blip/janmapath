@@ -5,7 +5,14 @@ from __future__ import annotations
 import json
 import os
 
-from .base import RESPONSE_SCHEMA, SYSTEM_PROMPT, user_prompt
+from .base import (
+    RESPONSE_SCHEMA,
+    SYSTEM_PROMPT,
+    in_virtualenv,
+    install_command,
+    python_executable,
+    user_prompt,
+)
 
 NAME = "anthropic"
 DEFAULT_MODEL = "claude-opus-5"
@@ -35,6 +42,9 @@ def status() -> dict:
         "name": NAME,
         "label": "Anthropic Claude",
         "sdk_package": "anthropic",
+        "install_command": install_command("anthropic"),
+        "python_executable": python_executable(),
+        "in_virtualenv": in_virtualenv(),
         "sdk_installed": version is not None,
         "sdk_version": version,
         "key_vars": KEY_VARS,

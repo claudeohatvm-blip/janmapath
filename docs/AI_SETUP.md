@@ -55,16 +55,25 @@ Free tier, no payment card required. The quickest way to start.
 ### Configure
 
 ```bash
-pip install google-genai
-export GEMINI_API_KEY="AQ...."          # or AIza...
+.venv/bin/python -m pip install google-genai
 ```
 
-Or in `.env` beside `manage.py`:
+> **Use the venv's Python, not a bare `pip`.** A bare `pip install` resolves
+> through PATH and usually finds the system Python, and a virtualenv ignores
+> `~/.local/lib` by default - so the package installs "successfully" and stays
+> invisible to the server. `/setup/ai` prints the exact command for the
+> interpreter it is running on.
+
+Then put the key in `.env` beside `manage.py`:
 
 ```
 GEMINI_API_KEY=AQ....
 GEMINI_MODEL=gemini-2.5-pro      # optional, default gemini-2.5-flash
 ```
+
+`.env` is preferable to exporting: it survives closing the terminal, and it
+avoids shell-syntax differences (`export VAR=` in bash, `$env:VAR =` in
+PowerShell, `set VAR=` in CMD).
 
 `GOOGLE_API_KEY` is accepted as an alternative variable name.
 
@@ -82,9 +91,10 @@ access.
 3. **API Keys** → **Create Key**. Shown only once; begins `sk-ant-`.
 
 ```bash
-pip install anthropic
-export ANTHROPIC_API_KEY="sk-ant-..."
+.venv/bin/python -m pip install anthropic
 ```
+
+Then `ANTHROPIC_API_KEY=sk-ant-...` in `.env`.
 
 Optional: `ANTHROPIC_MODEL` (default `claude-opus-5`).
 
@@ -123,6 +133,7 @@ key detected.
 
 | Symptom | Cause |
 |---|---|
+| SDK shows "not installed" but pip said "already satisfied" | pip installed into a different Python. A virtualenv ignores `~/.local/lib`, so a user-site install is invisible to it. Use the command shown in the provider card on `/setup/ai`, which names the running interpreter explicitly. |
 | Panel still says "not set" | Variable exported in a different shell from the one running the server, or the server was not restarted. |
 | Gemini `401 UNAUTHENTICATED` | Key wrong, revoked, or has stray quotes or whitespace. Create a fresh one in AI Studio. |
 | Gemini `429 RESOURCE_EXHAUSTED` | Free-tier rate limit. Wait, or change `GEMINI_MODEL`. |
